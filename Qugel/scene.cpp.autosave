@@ -1,0 +1,55 @@
+#include "scene.h"
+
+QuCamera *QuScene::getDefaultCam() const
+{
+    return defaultCam;
+}
+
+void QuScene::setDefaultCam(QuCamera *value)
+{
+    defaultCam = value;
+}
+
+/*
+QRenderer *Scene::getRenderer() const
+{
+    return renderer;
+}*/
+
+void QuScene::Render()
+{
+    renderer->Render();
+}
+
+void QuScene::setWindowWidth(float width)
+{
+    renderer->setWidth(width);
+}
+
+void QuScene::setWindowHeight(float height)
+{
+    renderer->setHeight(height);
+}
+
+void QuScene::setDevicePixelRatio(float ratio)
+{
+    renderer->setDevicePixelRatio(ratio);
+}
+
+void QuScene::setRefreshRate(float rate)
+{
+renderer->setRefreshRate(rate);
+}
+
+void QuScene::Initialize()
+{
+    renderer->Initialize();
+
+}
+
+
+QuScene::QuScene(QObject* parent): QObject(parent)
+{
+    defaultCam=new QuCamera(this);
+    renderer= new QuRenderer(this);
+}

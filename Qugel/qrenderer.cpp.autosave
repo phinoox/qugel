@@ -1,0 +1,191 @@
+#include "qrenderer.h"
+#include <QOpenGLContext>
+#include <QOpenGLVersionProfile>
+#include <QDebug>
+#include <QOpenGLDebugLogger>
+#include <QVector3D>
+#include "scene.h"
+
+static const char *vertexShaderSource =
+        "#version 330 core \n"
+        "attribute highp vec4 posAttr;\n"
+        "attribute lowp vec3 colAttr;\n"
+        "varying lowp vec3 col;\n"
+        "uniform highp mat4 matrix;\n"
+        "void main() {\n"
+        "   col = colAttr;\n"
+        "   gl_Position = matrix * posAttr;\n"
+        "}\n";
+
+static const char *fragmentShaderSource =
+        "#version 330 core \n"
+        "layout (location=0) out vec4 oCol;\n"
+        "varying lowp vec3 col;\n"
+
+        "void main() {\n"
+        "oCol=vec4(col,1);\n"
+        //"oCol=col;\n"
+        "}\n";
+
+
+static GLfloat vertices[] = {
+    0.0f, 0.707f,1,
+    -0.5f, -0.5f,1,
+    0.5f, -0.5f,1
+};
+
+static GLfloat colors[] = {
+    1.0f, 0.0f, 0.0f,
+    0.0f, 1.0f, 0.0f,
+    0.0f, 0.0f, 1.0f
+};
+
+
+QuRenderer::QuRenderer(QObject *parent): QObject(parent)
+{
+    scene=static_cast<QuScene*>(parent);
+    QQuaternion q=QQuaternion::fromEulerAngles(-90,0,0);
+
+    float* mm= &q.toRotationMatrix().data()[6];
+    QVector3D v;
+    for(int i=0;i<3;i++)
+    {
+        v[i]=mm[i];
+    }
+    qDebug()<<v;
+}
+
+void QuRenderer::Initialize()
+{
+    //generall opengl settings
+    QSurfaceFormat fmt;
+    fmt.setDepthBufferSize(24);
+    fmt.setSamples(16);
+
+
+
+    QOpenGLDebugLogger *logger = new QOpenGLDebugLogger(this);
+        logger->initialize();
+        connect(logger, &QOpenGLDebugLogger::messageLogged, [=](const QOpenGLDebugMessage &debugMessage){qDebug()<<debugMessage;});
+            logger->startLogging();
+
+    // Request OpenGL 3.3 compatibility or OpenGL ES 3.0.
+    if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGL) {
+        qDebug("Requesting 3.3 compatibility context");
+        fmt.setVersion(4, 0);
+        fmt.setDepthBufferSize(24);
+
+        fmt.setProfile(QSurfaceFormat::CompatibilityProfile);
+    } else {
+        qDebug("Requesting 3.0 context");
+        fmt.setVersion(3, 1);
+    }
+    QOpenGLContext::currentContext()->setFormat(fmt);
+    static_cast<QOpenGLExtraFunctions*>(this)->initializeOpenGLFunctions();
+    QOpenGLVersionProfile glProfile(QOpenGLContext::currentContext()->format());
+    glEnable(GL_DEPTH_TEST);
+     glDepthFunc(GL_LESS);
+    auto glInfo=QOpenGLContext::currentContext()->versionFunctions(glProfile);
+    auto vInfo=glProfile.version();
+    qDebug()<<vInfo.first<<":"<<vInfo.second;
+
+
+
+
+
+    m_program = new QOpenGLShaderProgram(this);
+    m_program->addShaderFromSourceCode(QOpenGLShader::Vertex, vertexShaderSource);
+    m_program->addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentShaderSource);
+    m_program->link();
+    m_posAttr = m_program->attributeLocation("posAttr");
+    m_colAttr = m_program->attributeLocation("colAttr");
+    m_matrixUniform = m_program->uniformLocation("matrix");
+
+
+    fbo= new QuFrameBuffer(this);
+    fbo->Init(width,height);
+
+}
+
+void QuRenderer::Render()
+{
+
+    fbo->bind();
+
+    m_program->bind();
+
+    QMatrix4x4 matrix;
+    matrix.perspective(60.0f, 4.0f/3.0f, 0.1f, 100.0f);
+    matrix.translate(0, 0, -2);
+    matrix.rotate(100.0f * m_frame / refreshRate, 0, 1, 0);
+
+    m_program->setUniformValue(m_matrixUniform, matrix);
+
+
+
+    glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, vertices);
+    glVertexAttribPointer(m_colAttr, 3, GL_FLOAT, GL_FALSE, 0, colors);
+
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+
+
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    glDisableVertexAttribArray(1);
+    glDisableVertexAttribArray(0);
+
+    m_program->release();
+    ++m_frame;
+
+    fbo->release();
+    fbo->render();
+
+
+
+
+}
+
+float QuRenderer::getRefreshRate() const
+{
+    return refreshRate;
+}
+
+void QuRenderer::setRefreshRate(float value)
+{
+    refreshRate = value;
+}
+
+int QuRenderer::getWidth() const
+{
+    return width;
+}
+
+void QuRenderer::setWidth(int value)
+{
+    width = value;
+    if(fbo!=nullptr)
+    fbo->resize(width,height);
+}
+
+int QuRenderer::getHeight() const
+{
+    return height;
+}
+
+void QuRenderer::setHeight(int value)
+{
+    height = value;
+    if(fbo!=nullptr)
+    fbo->resize(width,height);
+}
+
+float QuRenderer::getDevicePixelRatio() const
+{
+    return devicePixelRatio;
+}
+
+void QuRenderer::setDevicePixelRatio(float value)
+{
+    devicePixelRatio = value;
+}

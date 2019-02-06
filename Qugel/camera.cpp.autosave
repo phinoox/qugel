@@ -1,0 +1,22 @@
+#include "camera.h"
+
+QuTransform QuCamera::getTransform() const
+{
+    return transform;
+}
+
+void QuCamera::setTransform(const QuTransform &value)
+{
+    transform = value;
+}
+
+void QuCamera::Update()
+{
+    view=QMatrix4x4();
+    view.perspective(FOV,aspect,nearClip,farClip);
+}
+
+QuCamera::QuCamera(QObject* parent):QObject (parent){
+
+
+}

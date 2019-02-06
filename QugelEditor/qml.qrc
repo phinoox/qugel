@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/qml">
+        <file>FileGrid.qml</file>
+        <file>Uitest.qml</file>
+        <file>UitestForm.ui.qml</file>
+    </qresource>
+</RCC>

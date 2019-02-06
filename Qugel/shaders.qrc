@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/shaders">
+        <file>Shaders/fboquad.frag</file>
+        <file>Shaders/fboquad.vert</file>
+    </qresource>
+</RCC>

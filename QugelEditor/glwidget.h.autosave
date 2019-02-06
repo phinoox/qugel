@@ -1,0 +1,22 @@
+#ifndef GLWIDGET_H
+#define GLWIDGET_H
+#include <QOpenGLWidget>
+
+#include <scene.h>
+
+class GLWidget : public QOpenGLWidget
+{
+public:
+    GLWidget(QWidget* parent);
+
+    // QOpenGLWidget interface
+protected:
+    virtual void initializeGL() override;
+    virtual void resizeGL(int w, int h) override;
+    virtual void paintGL() override;
+private:
+
+    QuScene* scene;
+};
+
+#endif // GLWIDGET_H
